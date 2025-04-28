@@ -9,7 +9,6 @@ interface Config {
   jwtSecret: string;
   jwtExpiresIn: string;
   uploadDir: string;
-  maxFileSize: number;
   rateLimitWindow: number;
   rateLimitMax: number;
   maxConcurrentUploads: number;
@@ -18,6 +17,11 @@ interface Config {
     errorThresholdPercentage: number;
     resetTimeout: number;
   };
+  cpuThresholdPercent: number;
+  memoryThresholdPercent: number;
+  highLoadLimitFactor: number;
+  cacheDurationMs: number;
+  maxFileSizeInBytes: number;
 }
 
 export const config: Config = {
@@ -26,13 +30,17 @@ export const config: Config = {
   jwtSecret: process.env.JWT_SECRET || 'your-secret-key',
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1h',
   uploadDir: process.env.UPLOAD_DIR || path.join(__dirname, '../../uploads'),
-  maxFileSize: parseInt(process.env.MAX_FILE_SIZE || '262144000', 10), // 250MB
-  rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW || '10000', 10), // 10s
-  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '1', 10), // 1 req
+  rateLimitWindow: parseInt(process.env.RATE_LIMIT_WINDOW || '10000', 10),
+  rateLimitMax: parseInt(process.env.RATE_LIMIT_MAX || '1', 10),
   maxConcurrentUploads: parseInt(process.env.MAX_CONCURRENT_UPLOADS || '5', 10),
   circuitBreakerOptions: {
     timeout: parseInt(process.env.CIRCUIT_TIMEOUT || '30000', 10),
-    errorThresholdPercentage: parseInt(process.env.ERROR_THRESHOLD || '50', 10), // 50%
+    errorThresholdPercentage: parseInt(process.env.ERROR_THRESHOLD || '50', 10),
     resetTimeout: parseInt(process.env.RESET_TIMEOUT || '30000', 10),
-  }
+  },
+  cpuThresholdPercent: parseInt(process.env.CPU_THRESHOLD_PERCENT || '80', 10),
+  memoryThresholdPercent: parseInt(process.env.MEMORY_THRESHOLD_PERCENT || '80', 10),
+  highLoadLimitFactor: parseFloat(process.env.HIGH_LOAD_LIMIT_FACTOR || '0.5'),
+  cacheDurationMs: parseInt(process.env.CACHE_DURATION_MS || '5000', 10),
+  maxFileSizeInBytes: parseInt(process.env.MAX_FILE_SIZE_IN_BYTES || '250000000', 10), 
 };
