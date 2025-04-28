@@ -63,8 +63,8 @@ async function processFile(file: Express.Multer.File, userId: string) {
   //   throw error;
   // }
 
-  // Always fail
-  throw new Error('Service unavailable');
+  // // Always fail
+  // throw new Error('Service unavailable');
 
   await new Promise((resolve) => setTimeout(resolve, 1000));
   logger.info(`Finished processing file ${file.filename}`);
