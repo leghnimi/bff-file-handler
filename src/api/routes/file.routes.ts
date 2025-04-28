@@ -7,6 +7,7 @@ import { upload } from '../../infrastructure/multer.config';
 import { logger } from '../../infrastructure/logging';
 import { dynamicRateLimiterService } from '../../domain/services/dynamicRateLimiter.service';
 import pLimit from 'p-limit';
+import { createResilientFunction } from '../../infrastructure/resilience';
 
 const router = Router();
 
@@ -52,6 +53,54 @@ const uploadLimiter = rateLimit({
 
 router.use(authenticate);
 
+async function processFile(file: Express.Multer.File, userId: string) {
+  logger.info(`Processing file ${file.filename} for user ${userId}`);
+
+  // // Simulate random failures (50% chance)
+  // if (Math.random() < 0.5) {
+  //   const error = new Error('Temporary network issue');
+  //   error.name = 'NetworkError';
+  //   throw error;
+  // }
+
+  // // Always fail
+  // throw new Error('Service unavailable');
+
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  logger.info(`Finished processing file ${file.filename}`);
+  return {
+    filename: file.filename,
+    originalname: file.originalname,
+    size: file.size,
+    processed: true,
+  };
+}
+
+const resilientProcessFile = createResilientFunction(processFile, {
+  retry: {
+    maxRetries: 3,
+    initialDelayMs: 200,
+    maxDelayMs: 2000,
+    backoffFactor: 1.5,
+    retryableErrors: ['timeout', 'connection', /network/i, /temporary/i],
+  },
+  circuitBreaker: {
+    resetTimeout: 10000,
+    errorThresholdPercentage: 50,
+    rollingCountTimeout: 30000,
+  },
+  fallbackValue: async (file: Express.Multer.File, userId: string) => {
+    logger.warn(`Using fallback for file ${file.filename} (user: ${userId})`);
+    return {
+      filename: file.filename,
+      originalname: file.originalname,
+      size: file.size,
+      processed: false,
+      error: 'Processing failed, file will be processed later',
+    };
+  },
+});
+
 router.post(
   '/',
   uploadLimiter,
@@ -64,30 +113,34 @@ router.post(
     }
 
     const uploadedFiles = req.files as Express.Multer.File[];
+    const userId = req.user?.id || 'unknown';
 
     try {
       const processingPromises = uploadedFiles.map((file) =>
         concurrencyLimiter(async () => {
-          logger.info(`Processing file ${file.filename} for user ${req.user?.id}`);
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          logger.info(`Finished processing file ${file.filename}`);
-          return {
-            filename: file.filename,
-            originalname: file.originalname,
-            size: file.size,
-            processed: true,
-          };
+          return resilientProcessFile(file, userId);
         }),
       );
 
       const processingResults = await Promise.all(processingPromises);
 
+      const failedFiles = processingResults.filter((result) => !result.processed);
+
       logger.info(
-        `${uploadedFiles.length} files uploaded and processing initiated by user ${req.user?.id}`,
+        `${uploadedFiles.length} files uploaded and processing initiated by user ${userId}. ` +
+          `${failedFiles.length} files had processing issues.`,
       );
+
       res.status(StatusCodes.CREATED).json({
         message: `${uploadedFiles.length} files uploaded successfully. Processing started.`,
         results: processingResults,
+        failed:
+          failedFiles.length > 0
+            ? {
+                count: failedFiles.length,
+                message: 'Some files will be processed in background queue',
+              }
+            : undefined,
       });
     } catch (error) {
       logger.error(
