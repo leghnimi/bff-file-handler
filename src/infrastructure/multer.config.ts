@@ -34,7 +34,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallb
 export const upload = multer({
   storage: storage,
   limits: {
-    fileSize: config.maxFileSize,
+    fileSize: config.maxFileSizeInBytes,
   },
   fileFilter: fileFilter,
 });
@@ -43,7 +43,7 @@ export const handleMulterError = (err: any, req: Request, res: Response, next: F
   if (err instanceof multer.MulterError) {
     if (err.code === 'LIMIT_FILE_SIZE') {
       return res.status(StatusCodes.REQUEST_TOO_LONG).json({
-        message: `File too large. Maximum size allowed is ${config.maxFileSize / 1024 / 1024}MB.`,
+        message: `File too large. Maximum size allowed is ${config.maxFileSizeInBytes / 1024 / 1024}MB.`,
       });
     }
     return res.status(StatusCodes.BAD_REQUEST).json({ message: `Multer error: ${err.message}` });

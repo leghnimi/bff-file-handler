@@ -10,7 +10,7 @@ export  const errorHandler: ErrorRequestHandler = (err: any, req: express.Reques
       logger.warn(`Multer error caught for request ${req.method} ${req.originalUrl}: ${err.code} - ${err.message}`);
       if (err.code === 'LIMIT_FILE_SIZE') {
         res.status(StatusCodes.REQUEST_TOO_LONG).json({
-          message: `File too large. Maximum size allowed is ${config.maxFileSize / 1024 / 1024}MB.`,
+          message: `File too large. Maximum size allowed is ${config.maxFileSizeInBytes / 1024 / 1024}MB.`,
         });
         return;
       }
