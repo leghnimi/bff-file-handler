@@ -6,6 +6,85 @@ import * as os from 'os';
 
 const router = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Health
+ *   description: API health check endpoints
+ */
+
+/**
+ * @swagger
+ * /health:
+ *   get:
+ *     summary: Basic health check
+ *     description: Returns the basic health status of the API and its dependencies
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: System is healthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: healthy
+ *                   enum: [healthy, degraded, unhealthy]
+ *                 uptime:
+ *                   type: number
+ *                   description: Application uptime in seconds
+ *                 timestamp:
+ *                   type: number
+ *                   description: Current timestamp in milliseconds
+ *                 dependencies:
+ *                   type: object
+ *                   description: Status of system dependencies
+ *       206:
+ *         description: System is in degraded state
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: degraded
+ *                   enum: [degraded]
+ *                 uptime:
+ *                   type: number
+ *                   description: Application uptime in seconds
+ *                 timestamp:
+ *                   type: number
+ *                   description: Current timestamp in milliseconds
+ *                 dependencies:
+ *                   type: object
+ *                   description: Status of system dependencies
+ *       503:
+ *         description: System is unhealthy
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: unhealthy
+ *                   enum: [unhealthy]
+ *                 uptime:
+ *                   type: number
+ *                   description: Application uptime in seconds
+ *                 timestamp:
+ *                   type: number
+ *                   description: Current timestamp in milliseconds
+ *                 dependencies:
+ *                   type: object
+ *                   description: Status of system dependencies
+ *       500:
+ *         description: Error retrieving system health
+ */
+
 router.get('/', async (req: Request, res: Response): Promise<void> => {
   try {
     const health = await healthService.getSystemHealth();
@@ -26,6 +105,74 @@ router.get('/', async (req: Request, res: Response): Promise<void> => {
     });
   }
 });
+
+
+/**
+ * @swagger
+ * /health/details:
+ *   get:
+ *     summary: Detailed health check
+ *     description: Returns detailed health information about the API, including process and OS details
+ *     tags: [Health]
+ *     responses:
+ *       200:
+ *         description: System health details retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 status:
+ *                   type: string
+ *                   example: healthy
+ *                   enum: [healthy, degraded, unhealthy]
+ *                 uptime:
+ *                   type: number
+ *                   description: Application uptime in seconds
+ *                 timestamp:
+ *                   type: number
+ *                   description: Current timestamp in milliseconds
+ *                 dependencies:
+ *                   type: object
+ *                   description: Status of system dependencies
+ *                 process:
+ *                   type: object
+ *                   properties:
+ *                     pid:
+ *                       type: number
+ *                       description: Process ID
+ *                     version:
+ *                       type: string
+ *                       description: Node.js version
+ *                     memoryUsage:
+ *                       type: object
+ *                       description: Memory usage statistics
+ *                     env:
+ *                       type: string
+ *                       description: Current environment
+ *                 os:
+ *                   type: object
+ *                   properties:
+ *                     type:
+ *                       type: string
+ *                       description: Operating system type
+ *                     platform:
+ *                       type: string
+ *                       description: Platform identifier
+ *                     arch:
+ *                       type: string
+ *                       description: Architecture
+ *                     release:
+ *                       type: string
+ *                       description: OS release version
+ *                     uptime:
+ *                       type: number
+ *                       description: System uptime in seconds
+ *       503:
+ *         description: System is unhealthy
+ *       500:
+ *         description: Error retrieving detailed system health
+ */
 
 router.get('/details', async (req: Request, res: Response) => {
   try {
