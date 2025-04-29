@@ -11,6 +11,13 @@ import { createResilientFunction } from '../../infrastructure/resilience';
 
 const router = Router();
 
+/**
+ * @swagger
+ * tags:
+ *   name: Files
+ *   description: File upload and management endpoints
+ */
+
 const concurrencyLimiter = pLimit(config.maxConcurrentUploads);
 
 const uploadLimiter = rateLimit({
@@ -101,6 +108,80 @@ const resilientProcessFile = createResilientFunction(processFile, {
   },
 });
 
+/**
+ * @swagger
+ * /files:
+ *   post:
+ *     summary: Upload multiple files for processing
+ *     description: Upload one or more files for processing. Files are processed asynchronously with resilience patterns.
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     consumes:
+ *       - multipart/form-data
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Files to upload (maximum of 5 files)
+ *     responses:
+ *       201:
+ *         description: Files uploaded successfully and processing started
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 3 files uploaded successfully. Processing started.
+ *                 results:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       filename:
+ *                         type: string
+ *                         description: Server-generated filename
+ *                       originalname:
+ *                         type: string
+ *                         description: Original filename
+ *                       size:
+ *                         type: number
+ *                         description: File size in bytes
+ *                       processed:
+ *                         type: boolean
+ *                         description: Whether the file was processed successfully
+ *                       error:
+ *                         type: string
+ *                         description: Error message if processing failed
+ *                 failed:
+ *                   type: object
+ *                   properties:
+ *                     count:
+ *                       type: number
+ *                       description: Number of files that failed processing
+ *                     message:
+ *                       type: string
+ *                       description: Information about failed files
+ *       400:
+ *         description: No files uploaded or invalid request
+ *       401:
+ *         description: Unauthorized - authentication required
+ *       429:
+ *         description: Too many requests - rate limit exceeded
+ *       500:
+ *         description: Server error during file processing
+ */
+
 router.post(
   '/',
   uploadLimiter,
@@ -152,6 +233,33 @@ router.post(
     }
   },
 );
+
+/**
+ * @swagger
+ * /files:
+ *   get:
+ *     summary: List files uploaded by the user
+ *     description: Retrieves a list of files that the authenticated user has uploaded (not implemented yet)
+ *     tags: [Files]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       501:
+ *         description: This endpoint is not implemented yet
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Not implemented yet
+ *                 user:
+ *                   type: object
+ *                   description: Current authenticated user info
+ *       401:
+ *         description: Unauthorized - authentication required
+ */
 
 router.get('/', (req, res) => {
   res.status(StatusCodes.NOT_IMPLEMENTED).json({ message: 'Not implemented yet', user: req.user });
